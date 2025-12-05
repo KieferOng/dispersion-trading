@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from requests.exceptions import ReadTimeout, RequestException
 
 # -------------------------------------------------
 # Config & API
@@ -182,23 +183,44 @@ def fetch_option_bar(opt_ticker, day):
     start_ymd = pd.Timestamp(day).strftime("%Y-%m-%d")
     end_ymd = pd.Timestamp(day + dt.timedelta(days=1)).strftime("%Y-%m-%d")
 
+    # 1) Try daily bar
     url_day = f"{BASE}/v2/aggs/ticker/{opt_ticker}/range/1/day/{start_ymd}/{end_ymd}"
-    r = requests.get(url_day, headers=HEADERS, timeout=20)
-    if r.status_code == 200:
-        rows = r.json().get("results", [])
-        if rows:
-            x = rows[0]
-            return {"volume": x.get("v", 0), "close": x.get("c", None)}
+    try:
+        r = requests.get(url_day, headers=HEADERS, timeout=40)  # a bit more generous
+        if r.status_code == 200:
+            rows = r.json().get("results", [])
+            if rows:
+                x = rows[0]
+                return {"volume": x.get("v", 0), "close": x.get("c", None)}
+        else:
+            print(f"[{opt_ticker} {day}] daily request status {r.status_code}: {r.text[:120]}")
+    except ReadTimeout:
+        print(f"[{opt_ticker} {day}] ⚠️ daily request timed out, falling back to minute")
+    except RequestException as e:
+        print(f"[{opt_ticker} {day}] ⚠️ daily request error: {e}")
 
+    # 2) Fallback: minute bars
     url_min = f"{BASE}/v2/aggs/ticker/{opt_ticker}/range/1/minute/{start_ymd}/{end_ymd}"
     params = {"adjusted": "true", "sort": "asc", "limit": 50000}
-    r = requests.get(url_min, params=params, headers=HEADERS, timeout=30)
-    rows = r.json().get("results", [])
-    if not rows:
+    try:
+        r = requests.get(url_min, params=params, headers=HEADERS, timeout=60)
+        if r.status_code != 200:
+            print(f"[{opt_ticker} {day}] ⚠️ minute request status {r.status_code}: {r.text[:120]}")
+            return {"volume": 0, "close": None}
+
+        rows = r.json().get("results", [])
+        if not rows:
+            return {"volume": 0, "close": None}
+
+        vol = sum(row.get("v", 0) for row in rows)
+        last_close = rows[-1].get("c", None)
+        return {"volume": vol, "close": last_close}
+    except ReadTimeout:
+        print(f"[{opt_ticker} {day}] ⚠️ minute request timed out, returning empty bar")
         return {"volume": 0, "close": None}
-    vol = sum(row.get("v", 0) for row in rows)
-    last_close = rows[-1].get("c", None)
-    return {"volume": vol, "close": last_close}
+    except RequestException as e:
+        print(f"[{opt_ticker} {day}] ⚠️ minute request error: {e}, returning empty bar")
+        return {"volume": 0, "close": None}
 
 
 # -------------------------------------------------
