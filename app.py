@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import altair as alt
@@ -8,7 +9,12 @@ st.set_page_config(
 )
 
 @st.cache_data
-def load_data():
+def load_data(factors_mtime: float, master_mtime: float):
+    """Load and merge factors + master data.
+
+    factors_mtime / master_mtime are only used so that the cache
+    automatically refreshes whenever either CSV file changes.
+    """
     df_factors = pd.read_csv("data2/dispersion_factors.csv")
     df_spy = pd.read_csv("data2/master_dispersion_data.csv")
 
@@ -30,6 +36,11 @@ def load_data():
         .reset_index(drop=True)
     )
     return df
+
+# 👇 new lines: compute mtimes and pass into cached function
+factors_mtime = os.path.getmtime("data2/dispersion_factors.csv")
+master_mtime = os.path.getmtime("data2/master_dispersion_data.csv")
+df = load_data(factors_mtime, master_mtime)
 
 df = load_data()
 
