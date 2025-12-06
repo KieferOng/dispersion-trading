@@ -2,8 +2,8 @@ name: Auto Update Dispersion Data
 
 on:
   schedule:
-    - cron: "0 12 * * *"   # every day at 12:00 UTC (7 AM ET)
-  workflow_dispatch:
+    - cron: "0 12 * * *"   # every day at 12:00 UTC (before NY open)
+  workflow_dispatch:        # allow manual trigger
 
 permissions:
   contents: write
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # REQUIRED for rebase
+          fetch-depth: 0   # full history so rebase works if needed
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -44,17 +44,21 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
 
-          # IMPORTANT: update to latest remote main
-          git fetch origin main
-          git pull --rebase origin main
-
+          # 1) Stage CSV changes (adjust path if needed)
           git add data2/*.csv
 
-          # If no changes, exit cleanly
+          # 2) If nothing changed, exit cleanly
           if git diff --cached --quiet; then
             echo "No CSV changes to commit."
             exit 0
           fi
 
+          # 3) Commit our changes
           git commit -m "Auto-update dispersion CSVs [skip ci]"
+
+          # 4) Make sure we're up to date with remote main
+          git fetch origin main
+          git pull --rebase origin main
+
+          # 5) Push rebased commit
           git push origin HEAD:main
