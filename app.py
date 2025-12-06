@@ -42,8 +42,6 @@ factors_mtime = os.path.getmtime("data2/dispersion_factors.csv")
 master_mtime = os.path.getmtime("data2/master_dispersion_data.csv")
 df = load_data(factors_mtime, master_mtime)
 
-df = load_data()
-
 st.title("Concentration of Dispersion Trading in the S&P 500")
 st.markdown("Date Range: Post-Covid (starting mid-2020)")
 st.markdown("Select series to display:")
