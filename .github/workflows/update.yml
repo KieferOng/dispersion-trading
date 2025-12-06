@@ -1,32 +1,36 @@
-name: Auto-update dispersion CSVs
+name: Auto Update Dispersion Data
 
 on:
   schedule:
-    - cron: "0 8 * * *"
+    - cron: "0 12 * * *"   # every day at 12:00 UTC (7 AM ET)
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: auto-update-dispersion
+  cancel-in-progress: true
+
 jobs:
-  update-data:
+  update:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 0   # REQUIRED for rebase
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install pandas numpy requests python-dotenv
 
       - name: Add POLYGON_API_KEY
         run: echo "POLYGON_API_KEY=${{ secrets.POLYGON_API_KEY }}" >> $GITHUB_ENV
@@ -40,13 +44,13 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
 
-          # *** this part prevents the 'fetch first' error ***
+          # IMPORTANT: update to latest remote main
           git fetch origin main
           git pull --rebase origin main
-          # ***********************************************
 
-          git add data/*.csv  # change path if needed
+          git add data2/*.csv
 
+          # If no changes, exit cleanly
           if git diff --cached --quiet; then
             echo "No CSV changes to commit."
             exit 0
