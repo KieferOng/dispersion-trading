@@ -40,12 +40,12 @@ jobs:
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
 
-          # *** THIS PART IS MISSING IN YOUR CURRENT RUN ***
+          # *** this part prevents the 'fetch first' error ***
           git fetch origin main
           git pull --rebase origin main
           # ***********************************************
 
-          git add data/*.csv  # adjust path as needed
+          git add data/*.csv  # change path if needed
 
           if git diff --cached --quiet; then
             echo "No CSV changes to commit."
