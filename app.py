@@ -37,7 +37,6 @@ def load_data(factors_mtime: float, master_mtime: float):
     )
     return df
 
-# 👇 new lines: compute mtimes and pass into cached function
 factors_mtime = os.path.getmtime("data2/dispersion_factors.csv")
 master_mtime = os.path.getmtime("data2/master_dispersion_data.csv")
 df = load_data(factors_mtime, master_mtime)
