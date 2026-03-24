@@ -124,7 +124,7 @@ if has_left:
 
     left_chart = (
         alt.Chart(left_df)
-        .mark_line()
+        .mark_line(opacity=0.8)
         .encode(
             x=alt.X(
                 "date:T",
@@ -133,7 +133,7 @@ if has_left:
             ),
             y=alt.Y(
                 "Value:Q",
-                title="",
+                title="Dispersion Index (Z-Score)",
                 scale=alt.Scale(domain=[y_min, y_max]),
             ),
             color=alt.Color(
@@ -152,13 +152,15 @@ spy_df = df[["date", "SPY_IV"]].melt(
 spy_df["Series"] = "SPY_IV"
 
 spy_axis = alt.Axis(
-    title="SPY_IV",
+    title="SPY Implied Volatility (IV)",
     orient="right" if has_left else "left",
+    format="%",
+    grid=False,
 )
 
 spy_chart = (
     alt.Chart(spy_df)
-    .mark_line()
+    .mark_line(opacity=0.8)
     .encode(
         x=alt.X(
             "date:T",
@@ -167,16 +169,19 @@ spy_chart = (
                 format="%b %Y",
                 labelAngle=-45,
                 labelFlush=True,
-                tickCount="month",
             ),
         ),
         y=alt.Y("Value:Q", axis=spy_axis),
         color=alt.Color(
             "Series:N",
             scale=color_scale,
-            legend=alt.Legend(title="Series"),
+            legend=alt.Legend(title="Series", orient="top-left"),
         ),
-        tooltip=["date:T", "Series:N", "Value:Q"],
+        tooltip=[
+            "date:T", 
+            "Series:N", 
+            alt.Tooltip("Value:Q", format=".1%")
+        ],
     )
 )
 charts.append(spy_chart)
