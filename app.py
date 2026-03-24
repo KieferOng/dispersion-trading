@@ -175,7 +175,7 @@ spy_chart = (
         color=alt.Color(
             "Series:N",
             scale=color_scale,
-            legend=alt.Legend(title="Series", orient="top-left"),
+            legend=alt.Legend(title="Series"),
         ),
         tooltip=[
             "date:T", 
